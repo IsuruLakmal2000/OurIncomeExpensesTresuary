@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "967975423164",
+    "firebase_url": "https://ourexpenses-39a87-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "ourexpenses-39a87",
+    "storage_bucket": "ourexpenses-39a87.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:967975423164:android:cc502c7351263fedb394b9",
+        "android_client_info": {
+          "package_name": "com.example.realtionshipincomeapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "967975423164-p8gi3upjrlsgsffngi0q3khco614l7lf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3PMcJBSEyRVhDq7NF8K6A8qCucBSqezQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "967975423164-p8gi3upjrlsgsffngi0q3khco614l7lf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
