@@ -1,10 +1,15 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:realtionshipincomeapp/widgets/IncomeAnaltycs.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:realtionshipincomeapp/services/AuthService.dart';
 import 'package:realtionshipincomeapp/services/DatabaseService.dart';
 import 'package:provider/provider.dart';
 import 'package:realtionshipincomeapp/providers/TotalAmountProvider.dart';
+import 'package:realtionshipincomeapp/widgets/ConfirmDialog.dart';
+import 'package:realtionshipincomeapp/widgets/IncomeTab.dart';
+import 'package:realtionshipincomeapp/widgets/ExpenseTab.dart';
+import 'package:realtionshipincomeapp/widgets/AccountCard.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -29,6 +34,11 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _transactions = transactions;
     });
+  }
+
+  Future<String> _getUserName(String userId) async {
+    final dbService = DatabaseService();
+    return await dbService.getUserFirstName(userId); // Fetch user's first name
   }
 
   void _openBottomModalSheet() async {
@@ -107,10 +117,12 @@ class _HomePageState extends State<HomePage> {
                           reason.isNotEmpty &&
                           amount.isNotEmpty) {
                         await _databaseService.addTransaction(
+                          userId: FirebaseAuth.instance.currentUser?.uid ?? '',
                           type: selectedType!,
                           reason: reason,
                           amount: double.parse(amount),
                         );
+                        await _fetchTransactions(); // Refresh transactions
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -141,10 +153,7 @@ class _HomePageState extends State<HomePage> {
         toolbarHeight: 80, // Increase AppBar height
         title: Row(
           children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundImage: AssetImage(''), // Replace with your image path
-            ),
+            Icon(Icons.add_ic_call),
             SizedBox(width: 10),
             Column(
               mainAxisAlignment: MainAxisAlignment.start,
@@ -161,14 +170,73 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     Icon(Icons.favorite, color: Colors.red, size: 16),
                     SizedBox(width: 4),
-                    Text(
-                      "Oshini Hansamala",
-                      style: TextStyle(color: Colors.black54, fontSize: 12),
+                    FutureBuilder<String?>(
+                      future:
+                          Provider.of<TotalAmountProvider>(
+                            context,
+                            listen: false,
+                          ).getOtherUserId(), // Fetch other user's ID
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Text(
+                            'Loading...',
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 12,
+                            ),
+                          );
+                        } else if (snapshot.hasError || !snapshot.hasData) {
+                          return Text(
+                            'Unknown',
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 12,
+                            ),
+                          );
+                        } else {
+                          final otherUserId = snapshot.data!;
+                          return FutureBuilder<String>(
+                            future: _getUserName(
+                              otherUserId,
+                            ), // Fetch other user's name
+                            builder: (context, nameSnapshot) {
+                              if (nameSnapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return Text(
+                                  'Loading...',
+                                  style: TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 12,
+                                  ),
+                                );
+                              } else if (nameSnapshot.hasError ||
+                                  !nameSnapshot.hasData) {
+                                return Text(
+                                  'Unknown',
+                                  style: TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 12,
+                                  ),
+                                );
+                              } else {
+                                return Text(
+                                  nameSnapshot.data!,
+                                  style: TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 16,
+                                  ),
+                                );
+                              }
+                            },
+                          );
+                        }
+                      },
                     ),
                   ],
                 ),
               ],
-            ), // Replace with the desired name
+            ),
           ],
         ),
         actions: [
@@ -194,52 +262,17 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
-            Container(
-              width: double.infinity,
+            SizedBox(
               height:
                   MediaQuery.of(context).size.height *
-                  0.3, // 30% of screen height
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: LinearGradient(
-                  colors: [
-                    const Color.fromARGB(255, 194, 12, 67),
-                    const Color.fromARGB(255, 115, 0, 95),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Our Saving Account",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Consumer<TotalAmountProvider>(
-                        builder: (context, totalAmountProvider, child) {
-                          return Text(
-                            'Rs.${totalAmountProvider.totalAmount.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 50,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+                  0.25, // 30% of screen height
+              child: PageView(
+                physics: ScrollPhysics(),
+                controller: PageController(viewportFraction: 1),
+                children: [
+                  AccountCard(),
+                  Incomeanaltycs(title: "Isuru", showTotalAmount: false),
+                ],
               ),
             ),
             SizedBox(height: 20),
@@ -266,49 +299,17 @@ class _HomePageState extends State<HomePage> {
                     Expanded(
                       child: TabBarView(
                         children: [
-                          // Expenses Tab
-                          ListView.builder(
-                            itemCount:
-                                _transactions
-                                    .where((t) => t["type"] == "Expense")
-                                    .length,
-                            itemBuilder: (context, index) {
-                              final expense =
-                                  _transactions
-                                      .where((t) => t["type"] == "Expense")
-                                      .toList()[index];
-                              return ListTile(
-                                leading: Icon(
-                                  Icons.arrow_downward,
-                                  color: Colors.red,
-                                ),
-                                title: Text(expense["reason"]),
-                                subtitle: Text(expense["timestamp"]),
-                                trailing: Text("- Rs.${expense["amount"]}"),
-                              );
-                            },
+                          ExpenseTab(
+                            transactions: _transactions,
+                            fetchTransactions: _fetchTransactions,
+                            deleteTransaction:
+                                _databaseService.deleteTransaction,
                           ),
-                          // Income Tab
-                          ListView.builder(
-                            itemCount:
-                                _transactions
-                                    .where((t) => t["type"] == "Income")
-                                    .length,
-                            itemBuilder: (context, index) {
-                              final income =
-                                  _transactions
-                                      .where((t) => t["type"] == "Income")
-                                      .toList()[index];
-                              return ListTile(
-                                leading: Icon(
-                                  Icons.arrow_upward,
-                                  color: Colors.green,
-                                ),
-                                title: Text(income["reason"]),
-                                subtitle: Text(income["timestamp"]),
-                                trailing: Text("+ Rs.${income["amount"]}"),
-                              );
-                            },
+                          IncomeTab(
+                            transactions: _transactions,
+                            fetchTransactions: _fetchTransactions,
+                            deleteTransaction:
+                                _databaseService.deleteTransaction,
                           ),
                         ],
                       ),
